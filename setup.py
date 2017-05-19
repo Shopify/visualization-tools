@@ -7,5 +7,5 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    package_dir={'funnel_tree_visualization': 'funnel_tree_visualization'}
+    package_dir={'funnel': 'funnel'}
 )
