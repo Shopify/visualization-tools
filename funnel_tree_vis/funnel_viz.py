@@ -400,3 +400,4 @@ class TreeViz(object):
         :return:
         """
         self._node_metric_col_print_dict.update(node_metric_col_print_dict)
+        
