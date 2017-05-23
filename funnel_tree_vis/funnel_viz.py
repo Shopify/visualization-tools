@@ -1,7 +1,13 @@
+from __future__ import division
+
 import os
+import pandas as pd
+import numpy as np
 from PIL import Image
 from anytree import Node as BaseNode, PreOrderIter
 from anytree.dotexport import RenderTreeGraph
+
+
 
 class Node(BaseNode):
     """
@@ -185,7 +191,7 @@ class TreeViz(object):
         :param name: name of the node
         :return: Node() in the tree
         """
-        node_list = [node for node in PreOrderIter(tree, filter_=lambda n: n.name == name)]
+        node_list = [node for node in PreOrderIter(tree) if node.name == name]
         assert len(node_list) == 1, "The name of the node is not unique or does not exist"
         return node_list[0]
 
@@ -278,7 +284,6 @@ class TreeViz(object):
                     return 'label="{prop}"'.format(prop=self._format_string(ratio, 'percent', 2))
                 else:
                     return ""
-
         return edge_label_func(node, child, edge_prop_metric)
 
     @staticmethod
@@ -400,4 +405,3 @@ class TreeViz(object):
         :return:
         """
         self._node_metric_col_print_dict.update(node_metric_col_print_dict)
-        
