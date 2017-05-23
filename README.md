@@ -5,4 +5,3 @@ Repo for visualization-tools
 ```
 pip install git+git://github.com/Shopify/visualization-tools.git
 ```
-
