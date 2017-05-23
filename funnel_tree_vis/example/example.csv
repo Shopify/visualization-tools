@@ -1,0 +1,5 @@
+Impression Status,Click Status,Number_of_users,Number_of_conversions
+At least one Impression,At least one Ad Click,10000,1000
+At least one Impression,No Ad Click,100000,5000
+No Impression,At least one Ad Click,1000,90
+No Impression,No Ad Click,300000,100
