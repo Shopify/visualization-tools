@@ -372,7 +372,8 @@ class TreeViz(object):
                                                       layout_dict['type'],
                                                       layout_dict['digits'])
 
-                metric_tmp = "{0}: {1}".format(metric_name, metric_formated)
+                metric_tmp = "{0}: {1}".format(metric_name.replace('_', ' '),
+                                               metric_formated)
                 metric_string_list.append(metric_tmp)
 
         metric_string = "\n".join(metric_string_list)
