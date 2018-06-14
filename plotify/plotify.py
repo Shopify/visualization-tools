@@ -63,31 +63,35 @@ def _format_data(df, value, x, plot_by=None, color_by=None):
 
     df = df.copy()
 
-    # TODO Warning change for warning
     for name in plot_by:
         if _get_column_type(df, name) != 'object':
-            raise Exception("columns in plot_by must have dtype='object'")
+            warnings.warn("The type of column "+name+"in plot_by will be changed to string")
     for name in color_by:
         if _get_column_type(df, name) != 'object':
-            raise Exception("columns in color_by must have dtype='object'")
+            raise Exception("The type of column "+name+"in color_by will be changed to string")
+    if plot_by:
+        df[plot_by] = df[plot_by].apply(lambda x: x.map(str), axis=1)
+        df[SUBPLOT_COLUMN_NAME] = df[plot_by].apply('-'.join, axis=1)
+    else:
+        df[SUBPLOT_COLUMN_NAME] = ''
+            
+    if color_by:
+        df[color_by] = df[color_by].apply(lambda x: x.map(str), axis=1)
+        df[COLOR_BY_COLUMN_NAME] = df[color_by].apply('-'.join, axis=1)
+    else:
+        df[COLOR_BY_COLUMN_NAME] = ''
+ 
+    if _get_column_cardinality(df_new, SUBPLOT_COLUMN_NAME) > MAX_SUBPLOTS:
+        raise Exception('Number of subplots exceeds maximum, MAX_SUBPLOTS = ' + str(MAX_SUBPLOTS))
 
-    df[plot_by] = df[plot_by].apply(lambda x: x.map(str), axis=1)
-    df['subplot_name'] = df[plot_by].apply('-'.join, axis=1)
-
-    df[color_by] = df[color_by].apply(lambda x: x.map(str), axis=1)
-    df['color_name'] = df[color_by].apply('-'.join, axis=1)
+    if _get_column_cardinality(df_new, COLOR_BY_COLUMN_NAME) > MAX_COLORS:
+        raise Exception(
+            'Number of colors per plot exceeds maximum, MAX_COLORS = ' + str(MAX_COLORS))
 
     df_new = df.groupby(['subplot_name', 'color_name', x])[value].sum().reset_index()
 
     if df_new.size() != df.size():
         warnings.warn(
             "The original table was aggregated to fit the specification and the grain changed.")
-
-    if _get_column_cardinality(df_new, 'subplot_name') > MAX_SUBPLOTS:
-        raise Exception('Number of subplots exceeds maximum, MAX_SUBPLOTS = ' + str(MAX_SUBPLOTS))
-
-    if _get_column_cardinality(df_new, 'color_name') > MAX_COLORS:
-        raise Exception(
-            'Number of colors per plot exceeds maximum, MAX_COLORS = ' + str(MAX_COLORS))
 
     return df_new
