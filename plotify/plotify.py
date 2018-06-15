@@ -1,4 +1,5 @@
 import warnings
+from pandas.api.types import is_numeric_dtype, is_string_dtype
 
 MAX_SUBPLOTS = 20
 COLOR_MASTER_LIST = [
@@ -58,6 +59,10 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     :param value: str column name of y axis values
     :return: instance of pandas.DataFrame
     """
+    
+    if not is_numeric_dtype(df[value]):
+        message = "The value column " + value + " is not numeric"
+        raise Exception(message)
 
     df = df.copy()
     
@@ -70,7 +75,7 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
         if isinstance(plot_by, basestring):
             plot_by = [plot_by]
         for name in plot_by:
-            if _get_column_type(df, name) != 'object':
+            if not is_string_dtype(df[name]):
                 df[name] = df[name].astype(str)
                 message = "The type of column "+name+" in plot_by has been changed to string"
                 warnings.warn(message)
@@ -82,7 +87,7 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
         for name in color_by:
             if isinstance(color_by, basestring):
                 color_by = [color_by]
-            if _get_column_type(df, name) != 'object':
+            if not is_string_dtype(df[name]):
                 df[name] = df[name].astype(str)
                 message = "The type of column "+name+" in color_by has been changed to string"
                 warnings.warn(message)
