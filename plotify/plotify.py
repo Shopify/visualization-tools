@@ -48,9 +48,7 @@ def _get_column_cardinality(df, column_name):
     return df[column_name].nunique()
 
 
-def _format_data(df, value, x, plot_by=None, color_by=None):
-    # TODO test for no plot_by or color_by
-    # TODO use aggregate
+def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     # TODO use index if x is None
     """
     :param df: instance of pandas.DataFrame
@@ -65,10 +63,10 @@ def _format_data(df, value, x, plot_by=None, color_by=None):
 
     for name in plot_by:
         if _get_column_type(df, name) != 'object':
-            warnings.warn("The type of column "+name+"in plot_by will be changed to string")
+            warnings.warn("The type of column "+name+" in plot_by will be changed to string")
     for name in color_by:
         if _get_column_type(df, name) != 'object':
-            raise Exception("The type of column "+name+"in color_by will be changed to string")
+            warnings.warn("The type of column "+name+" in color_by will be changed to string")
     if plot_by:
         df[plot_by] = df[plot_by].apply(lambda x: x.map(str), axis=1)
         df[SUBPLOT_COLUMN_NAME] = df[plot_by].apply('-'.join, axis=1)
@@ -90,8 +88,8 @@ def _format_data(df, value, x, plot_by=None, color_by=None):
 
     df_new = df.groupby(['subplot_name', 'color_name', x])[value].sum().reset_index()
 
-    if df_new.size() != df.size():
+    if df_new.size() != df.size() and not aggregate:
         warnings.warn(
-            "The original table was aggregated to fit the specification and the grain changed.")
+            "The original table was aggregated to fit the specification and the grain changed as a result.")
 
     return df_new
