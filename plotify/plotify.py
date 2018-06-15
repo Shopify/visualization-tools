@@ -36,6 +36,8 @@ COLOR_COLUMN = '__color__'
 
 def _get_column_type(df, column_name):
     """
+    Method that returns the numpy type of a column
+    
     :param df: pandas.DataFrame instance
     :param column_name: str column name
     :return: str dtype.name (e.g., 'object', 'int64', 'float64')
@@ -46,7 +48,8 @@ def _get_column_type(df, column_name):
 
 def _get_column_cardinality(df, column_name):
     """
-
+    Method that returns the number of unique elements in a column
+    
     :param df: pandas.DataFrame instance
     :param column_name: str column name
     :return: int column cardinality
@@ -58,11 +61,14 @@ def _get_column_cardinality(df, column_name):
 def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     # TODO use index if x is None
     """
+    Method that takes the original dataframe given by the user and returns
+    a formated dataframe that can be manipulated by the _plotify method
+    
     :param df: instance of pandas.DataFrame
-    :param x: str column name of x axis values. Default is index
-    :param plot_by: list of column names (str). Default is empty list
-    :param line_by: list of column names (str) Default is empty list
     :param value: str column name of y axis values
+    :param x: str column name of x axis values
+    :param plot_by: str or list of column names
+    :param line_by: str or list of column names
     :return: instance of pandas.DataFrame
     """
     
@@ -140,6 +146,15 @@ def _assign_color(df, color_by_column_name):
 
 
 def _get_show_legend_df(df, plot_by, color_by):
+    """
+    Method that gets all combinations of plot_by and color_by values in the dataset
+    
+    :param df: pandas.DataFrame instance
+    :param plot_by: str plot_by column name
+    :param color_by: str color_by column name
+    :return: pandas.DataFrame instance
+    """
+    
     df = df.copy()
     return df \
         .groupby(color_by, as_index=False) \
@@ -147,10 +162,28 @@ def _get_show_legend_df(df, plot_by, color_by):
 
 
 def _show_legend(df_show_legend, plot_by, color_by, plot_by_name , color_by_name):
+    """
+    Method that determines if the combination plot_by_name and color_by_name is present in the dataset
+    
+    :param df_show_legend: pandas.DataFrame instance containing a line per combination
+    :param plot_by: str plot_by column name
+    :param color_by: str color_by column name
+    :param plot_by_name: str plot_by value to test
+    :param color_by_name: str color_by value to test
+    :return: bool True if combination is present in dataset
+    """
     return df_show_legend[(df_show_legend[plot_by] == plot_by_name) & (df_show_legend[color_by] == color_by_name)].shape[0] != 0
 
 
 def merge_trace_and_get_figure(traces, number_of_column):
+    """
+    Method that returns plotly figure object based on traces and subplot grid layout
+    
+    :param traces: dict of dicts is a plotly trace objects (one per series to display)
+    :param number_of_column: int user input for number of column in subplot grid
+    :return: dict plotly figure object
+    """
+    
     number_of_plot = len(traces)
 
     if number_of_plot == 1:
@@ -175,10 +208,30 @@ def merge_trace_and_get_figure(traces, number_of_column):
 
 
 def _get_plot_by_order(df, plot_by):
+    """
+    Method that returns list of subplots from plot_by column
+    
+    :param df: pandas.DataFrame instance
+    :param plot_by: name of plot_by column 
+    :return: list containing subplot names
+    """
+        
     return df[plot_by].unique().tolist()
 
 
 def _build_trace(df, x, y, name, showlegend, color):
+    """
+    Method that builds that plot data for a single trace
+    
+    :param df: pandas.DataFrame instance 
+    :param x: str x-axis column name
+    :param y: str y-axis column name
+    :param name: str trace name
+    :param showlegend: bool if True show trace name in legend
+    :param color: str the color code for this trace
+    :return: plotly go object
+    """
+        
     df = df.copy()
     return go.Scatter(x=df[x],
                       y=df[y],
@@ -190,6 +243,16 @@ def _build_trace(df, x, y, name, showlegend, color):
 
 
 def build_traces(df, x, y, plot_by, color_by):
+    """
+    Method that build a nested list of all traces to plot
+    
+    :param df: pandas.DataFrame instance
+    :param x: str x-axis column name
+    :param y: str y-axis column name
+    :param plot_by: plot_by column name
+    :param color_by: color_by column name
+    :return: list of lists for traces with the required data for display (one sublist per subplot)
+    """
 
     df = df.copy()
     df = _assign_color(df=df, color_by_column_name=color_by)
@@ -214,12 +277,33 @@ def build_traces(df, x, y, plot_by, color_by):
 
 
 def set_x_y_axis_title(fig, x_name, y_name, n_plot):
+    """
+    Method that sets axis titles
+    
+    :param fig: dict plotly figure object
+    :param x_name: str x_title 
+    :param y_name: str y_title
+    :param n_plot: int number of subplots
+    :return: dict plotly figure object
+    """
+        
     for i in range(0, n_plot):
         fig['layout']['xaxis{}'.format(i + 1)].update(title=x_name)
         fig['layout']['yaxis{}'.format(i + 1)].update(title=y_name)
 
 
 def set_subplot_title(fig, x, y, plot_by_all_name, color_by):
+    """
+    Method that sets subplot titles
+    
+    :param fig: dict plotly figure object
+    :param x: str x-axis column name
+    :param y: str y-axis column name
+    :param plot_by_all_name: str plot_by column name
+    :param color_by: str color_by column name
+    :return: dict plotly figure object
+    """
+    
     for ind, plot_by_specific in enumerate(plot_by_all_name):
         fig['layout']['annotations'][ind].update(
             {'text': '{y} per {x} per {color_by} for {plot_by_specific}'.format(x=x,y=y,color_by=color_by, plot_by_specific=plot_by_specific)}
@@ -227,6 +311,18 @@ def set_subplot_title(fig, x, y, plot_by_all_name, color_by):
 
 
 def _plotify(df, x, value, plot_by=None, color_by=None, number_of_column=None):
+    """
+    Method that builds the plotly figure object to be displayed
+    
+    :param df: pandas.DataFrame instance
+    :param x: str x-axis column name
+    :param value: str y-axis column name
+    :param plot_by: str or list column names to segment subplots
+    :param color_by: str or list column names to segment colors per subplot
+    :param number_of_column: int number of columns in subplot grid
+    :return: 
+    """
+    
     df = df.copy()
     df = _format_data(df=df,
                       value=value,
