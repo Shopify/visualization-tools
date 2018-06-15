@@ -163,7 +163,6 @@ def merge_trace_and_get_figure(traces, number_of_column):
     # the layout dict under the 'annotations' key
     fig = tools.make_subplots(rows=number_of_row, cols=number_of_column, subplot_titles=['Plot{}'.format(i) for i,j in enumerate(traces)])
 
-    # TODO WATCH FOR FIG update
     plot_ind = 0
     for row in range(number_of_row):
         for col in range(number_of_column):
@@ -180,7 +179,6 @@ def _get_plot_by_order(df, plot_by):
 
 
 def _build_trace(df, x, y, name, showlegend, color):
-    # TODO NOT SURE IF USEFUL
     df = df.copy()
     return go.Scatter(x=df[x],
                       y=df[y],
@@ -192,7 +190,6 @@ def _build_trace(df, x, y, name, showlegend, color):
 
 
 def build_traces(df, x, y, plot_by, color_by):
-    # TODO RAISE COLOR COL
 
     df = df.copy()
     df = _assign_color(df=df, color_by_column_name=color_by)
