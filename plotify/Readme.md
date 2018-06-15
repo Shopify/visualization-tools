@@ -5,8 +5,12 @@ When you ask plotify to plot something using a dataframe, it takes care of aggre
 and outputs a nice grid of plots showing you all the results.
 The main benefit is to increase speed and convenience for basic data visualization.
 
-## Example command
-Assuming you have a dataframe called df already available in your notebook:
+## How to Install
+in the shell type: `pip install git+git://github.com/Shopify/visualization-tools.git`
+in a Jupyter notebook type: `!pip2 install git+git://github.com/Shopify/visualization-tools.git`
+
+## Example Command
+Assuming you have a dataframe named `df` already available in your notebook:
 ```python
 from plotify.plotify import *
 from plotly.offline import init_notebook_mode, iplot
@@ -20,6 +24,7 @@ figure = create_plotly_fig(df=df,
                            number_of_column=2)
 iplot(figure)
 ```
-
 The output will look something like this:
 ![alt text](https://github.com/Shopify/visualization-tools/blob/master/plots_example.png "examples plots")
+
+See more examples [in this notebook](https://github.com/Shopify/visualization-tools/blob/master/plotify/example/plotify_example.ipynb)
