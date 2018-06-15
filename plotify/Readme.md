@@ -18,3 +18,6 @@ figure = create_plotly_fig(df,
                            number_of_columns=2)
 plot(figure)
 ```
+
+The output will look something like this:
+![alt text](https://github.com/Shopify/visualization-tools/blob/master/example_plots.png "examples plots")
