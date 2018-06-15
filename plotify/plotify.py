@@ -61,34 +61,34 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
 
     df = df.copy()
 
-    for name in plot_by:
-        if _get_column_type(df, name) != 'object':
-            warnings.warn("The type of column "+name+" in plot_by will be changed to string")
-    for name in color_by:
-        if _get_column_type(df, name) != 'object':
-            warnings.warn("The type of column "+name+" in color_by will be changed to string")
     if plot_by:
-        df[plot_by] = df[plot_by].apply(lambda x: x.map(str), axis=1)
+        for name in plot_by:
+            if _get_column_type(df, name) != 'object':
+                df[name] = df[name].astype(np.object)
+                warnings.warn("The type of column "+name+" in plot_by has been changed to string")
         df[SUBPLOT_COLUMN_NAME] = df[plot_by].apply('-'.join, axis=1)
     else:
         df[SUBPLOT_COLUMN_NAME] = ''
-            
+
     if color_by:
-        df[color_by] = df[color_by].apply(lambda x: x.map(str), axis=1)
+        for name in color_by:
+            if _get_column_type(df, name) != 'object':
+                df[name] = df[name].astype(np.object)
+                warnings.warn("The type of column "+name+" in color_by has been changed to string")
         df[COLOR_BY_COLUMN_NAME] = df[color_by].apply('-'.join, axis=1)
     else:
         df[COLOR_BY_COLUMN_NAME] = ''
  
-    if _get_column_cardinality(df_new, SUBPLOT_COLUMN_NAME) > MAX_SUBPLOTS:
+    if _get_column_cardinality(df, SUBPLOT_COLUMN_NAME) > MAX_SUBPLOTS:
         raise Exception('Number of subplots exceeds maximum, MAX_SUBPLOTS = ' + str(MAX_SUBPLOTS))
 
-    if _get_column_cardinality(df_new, COLOR_BY_COLUMN_NAME) > MAX_COLORS:
+    if _get_column_cardinality(df, COLOR_BY_COLUMN_NAME) > MAX_COLORS:
         raise Exception(
             'Number of colors per plot exceeds maximum, MAX_COLORS = ' + str(MAX_COLORS))
 
-    df_new = df.groupby(['subplot_name', 'color_name', x])[value].sum().reset_index()
+    df_new = df.groupby([SUBPLOT_COLUMN_NAME, COLOR_BY_COLUMN_NAME, x])[value].sum().reset_index()
 
-    if df_new.size() != df.size() and not aggregate:
+    if df_new.index.size != df.index.size and not aggregate:
         warnings.warn(
             "The original table was aggregated to fit the specification and the grain changed as a result.")
 
