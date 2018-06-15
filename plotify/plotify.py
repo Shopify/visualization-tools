@@ -60,8 +60,15 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     """
 
     df = df.copy()
+    
+    try:
+        basestring
+    except NameError:
+        basestring = str
 
     if plot_by:
+        if isinstance(plot_by, basestring):
+            plot_by = [plot_by]
         for name in plot_by:
             if _get_column_type(df, name) != 'object':
                 df[name] = df[name].astype(str)
@@ -73,6 +80,8 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
 
     if color_by:
         for name in color_by:
+            if isinstance(color_by, basestring):
+                color_by = [color_by]
             if _get_column_type(df, name) != 'object':
                 df[name] = df[name].astype(str)
                 message = "The type of column "+name+" in color_by has been changed to string"
