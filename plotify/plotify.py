@@ -34,7 +34,6 @@ SUBPLOT_COLUMN_NAME = '__subplot_column_name__'
 COLOR_BY_COLUMN_NAME = '__color_by_column_name__'
 COLOR_COLUMN = '__color__'
 
-
 def _get_column_type(df, column_name):
     """
     :param df: pandas.DataFrame instance
@@ -140,6 +139,17 @@ def _assign_color(df, color_by_column_name):
     return df
 
 
+def _get_show_legend_df(df, plot_by, color_by):
+    df = df.copy()
+    return df \
+        .groupby(color_by, as_index=False) \
+        .first()[[plot_by, color_by]]
+
+
+def _show_legend(df_show_legend, plot_by, color_by, plot_by_name , color_by_name):
+    return df_show_legend[(df_show_legend[plot_by] == plot_by_name) & (df_show_legend[color_by] == color_by_name)].shape[0] != 0
+
+
 def merge_trace_and_get_figure(traces, number_of_column):
     number_of_plot = len(traces)
 
@@ -186,6 +196,7 @@ def build_traces(df, x, y, plot_by, color_by):
 
     df = df.copy()
     df = _assign_color(df=df, color_by_column_name=color_by)
+    df_show_legend = _get_show_legend_df(df=df, plot_by=plot_by, color_by=color_by)
 
     plot_by_names = _get_plot_by_order(df=df, plot_by=plot_by)
     traces_allsubplot = []
@@ -193,12 +204,12 @@ def build_traces(df, x, y, plot_by, color_by):
         df_specific_subplot = df[df[plot_by] == plot_by_name]
 
         traces_per_subplot = []
-        for df_specific_subplot_color_by_name, df_specific_subplot_color_by in df_specific_subplot.groupby(color_by):
+        for specific_subplot_color_by_name, df_specific_subplot_color_by in df_specific_subplot.groupby(color_by):
             traces_per_subplot.append(_build_trace(df=df_specific_subplot_color_by,
                                                    x=x,
                                                    y=y,
-                                                   name=df_specific_subplot_color_by_name,
-                                                   showlegend=plot_by_name==plot_by_names[0],
+                                                   name=specific_subplot_color_by_name,
+                                                   showlegend=_show_legend(df_show_legend=df_show_legend, plot_by=plot_by, color_by=color_by, plot_by_name=plot_by_name, color_by_name=specific_subplot_color_by_name),
                                                    color=df_specific_subplot_color_by[COLOR_COLUMN].tolist()[0]))
         traces_allsubplot.append(traces_per_subplot)
 
