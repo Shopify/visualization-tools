@@ -252,5 +252,5 @@ def _plotify(df, x, value, plot_by=None, color_by=None, number_of_column=None):
     return fig
 
 
-pd.Dataframe.plotify = _plotify
+pd.DataFrame.plotify = _plotify
 
