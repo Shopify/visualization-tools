@@ -313,7 +313,7 @@ def set_subplot_title(fig, x, y, plot_by_all_name, color_by):
         )
 
 
-def plotify(df, x, value, plot_by=None, color_by=None, number_of_column=None):
+def create_plotly_fig(df, x, value, plot_by=None, color_by=None, number_of_column=None):
     """
     Method that builds the plotly figure object to be displayed
     
