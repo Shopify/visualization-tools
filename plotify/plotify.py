@@ -64,8 +64,9 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     if plot_by:
         for name in plot_by:
             if _get_column_type(df, name) != 'object':
-                df[name] = df[name].astype(np.object)
-                warnings.warn("The type of column "+name+" in plot_by has been changed to string")
+                df[name] = df[name].astype(str)
+                message = "The type of column "+name+" in plot_by has been changed to string"
+                warnings.warn(message)
         df[SUBPLOT_COLUMN_NAME] = df[plot_by].apply('-'.join, axis=1)
     else:
         df[SUBPLOT_COLUMN_NAME] = ''
@@ -73,18 +74,20 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     if color_by:
         for name in color_by:
             if _get_column_type(df, name) != 'object':
-                df[name] = df[name].astype(np.object)
-                warnings.warn("The type of column "+name+" in color_by has been changed to string")
+                df[name] = df[name].astype(str)
+                message = "The type of column "+name+" in color_by has been changed to string"
+                warnings.warn(message)
         df[COLOR_BY_COLUMN_NAME] = df[color_by].apply('-'.join, axis=1)
     else:
         df[COLOR_BY_COLUMN_NAME] = ''
  
     if _get_column_cardinality(df, SUBPLOT_COLUMN_NAME) > MAX_SUBPLOTS:
-        raise Exception('Number of subplots exceeds maximum, MAX_SUBPLOTS = ' + str(MAX_SUBPLOTS))
+        message = 'Number of subplots exceeds maximum, MAX_SUBPLOTS = ' + str(MAX_SUBPLOTS)
+        raise Exception(message)
 
     if _get_column_cardinality(df, COLOR_BY_COLUMN_NAME) > MAX_COLORS:
-        raise Exception(
-            'Number of colors per plot exceeds maximum, MAX_COLORS = ' + str(MAX_COLORS))
+        message = 'Number of colors per plot exceeds maximum, MAX_COLORS = ' + str(MAX_COLORS)
+        raise Exception(message)
 
     df_new = df.groupby([SUBPLOT_COLUMN_NAME, COLOR_BY_COLUMN_NAME, x])[value].sum().reset_index()
 
