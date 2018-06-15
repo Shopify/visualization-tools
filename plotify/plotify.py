@@ -1,8 +1,10 @@
 import warnings
 import pandas as pd
 from pandas.api.types import is_numeric_dtype, is_string_dtype
+import numpy as np
 import plotly.graph_objs as go
 from plotly import tools
+from plotly.offline import plot
 
 MAX_SUBPLOTS = 20
 COLOR_MASTER_LIST = [
@@ -30,6 +32,8 @@ COLOR_MASTER_LIST = [
 MAX_COLORS = len(COLOR_MASTER_LIST)
 SUBPLOT_COLUMN_NAME = '__subplot_column_name__'
 COLOR_BY_COLUMN_NAME = '__color_by_column_name__'
+COLOR_COLUMN = '__color__'
+
 
 def _get_column_type(df, column_name):
     """
@@ -241,3 +245,4 @@ def _plotify(df, x, value, plot_by=None, color_by=None, number_of_column=None):
 
 
 pd.Dataframe.plotify = _plotify
+
