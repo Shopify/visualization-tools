@@ -1,3 +1,5 @@
+from __future__ import division
+
 import warnings
 import pandas as pd
 from pandas.api.types import is_numeric_dtype, is_string_dtype
@@ -5,6 +7,7 @@ import numpy as np
 import plotly.graph_objs as go
 from plotly import tools
 from plotly.offline import plot
+
 
 MAX_SUBPLOTS = 20
 COLOR_MASTER_LIST = [
@@ -349,4 +352,3 @@ def _plotify(df, x, value, plot_by=None, color_by=None, number_of_column=None):
 
 
 pd.DataFrame.plotify = _plotify
-
