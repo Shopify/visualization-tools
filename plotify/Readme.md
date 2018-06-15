@@ -6,17 +6,19 @@ and outputs a nice grid of plots showing you all the results.
 The main benefit is to increase speed and convenience for basic data visualization.
 
 ## Example command
-Assuming you have a dataframe called df already available:
+Assuming you have a dataframe called df already available in your notebook:
 ```python
-from plotify import create_plotly_fig
-fromt plotly import plot
-figure = create_plotly_fig(df, 
+from plotify.plotify import *
+from plotly.offline import init_notebook_mode, iplot
+init_notebook_mode()
+
+figure = create_plotly_fig(df=df, 
                            x='date', 
                            value='order', 
                            plot_by='country',
                            color_by='plan', 
-                           number_of_columns=1)
-plot(figure)
+                           number_of_column=2)
+iplot(figure)
 ```
 
 The output will look something like this:
