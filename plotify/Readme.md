@@ -22,4 +22,4 @@ iplot(figure)
 ```
 
 The output will look something like this:
-![alt text](https://github.com/Shopify/visualization-tools/blob/master/example_plots.png "examples plots")
+![alt text](https://github.com/Shopify/visualization-tools/blob/master/plots_example.png "examples plots")
