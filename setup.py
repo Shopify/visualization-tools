@@ -7,5 +7,8 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    package_dir={'funnel_tree_vis': 'funnel_tree_vis'}
+    package_dir={
+        'funnel_tree_vis': 'funnel_tree_vis',
+        'plotify': 'plotify'
+    }
 )
