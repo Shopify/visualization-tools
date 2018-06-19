@@ -65,7 +65,7 @@ def _get_column_cardinality(df, column_name):
 
     return df[column_name].nunique()
 
-def _check_valid_calculation(some_dict):
+def _check_valid_ratio_column_map(some_dict):
     try:
         a = isinstance(some_dict['name'], basestring)
     except KeyError:
@@ -79,7 +79,7 @@ def _check_valid_calculation(some_dict):
     except KeyError:
         raise Exception('the calculation dict is missing a denominator key-value pair')
 
-    if not (a and b and c):
+    if not all(a, b, c):
         raise Exception('All column name references in the calculation must be strings')
 
     return True
@@ -103,7 +103,7 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     df = df.copy()
 
     if isinstance(value, dict):
-        _check_valid_calculation(value)
+        _check_valid_ratio_column_map(value)
     else:
         if not is_numeric_dtype(df[value]):
             message = "The value column " + value + " is not numeric"
