@@ -79,7 +79,7 @@ def _check_valid_ratio_column_map(some_dict):
     except KeyError:
         raise Exception('the calculation dict is missing a denominator key-value pair')
 
-    if not all(a, b, c):
+    if not all([a, b, c]):
         raise Exception('All column name references in the calculation must be strings')
 
     return True

@@ -1,4 +1,6 @@
-from plotify import _get_column_type, _get_column_cardinality, _format_data, SUBPLOT_COLUMN_NAME,\
+#from plotify import _get_column_type, _get_column_cardinality, _format_data, SUBPLOT_COLUMN_NAME,\
+#    COLOR_BY_COLUMN_NAME
+from .plotify import _get_column_type, _get_column_cardinality, _format_data, SUBPLOT_COLUMN_NAME,\
     COLOR_BY_COLUMN_NAME
 import pandas as pd
 import numpy as np
@@ -75,4 +77,19 @@ def test_plotby_colorby():
                              'metric_1': df.metric_1}).\
         groupby([SUBPLOT_COLUMN_NAME, COLOR_BY_COLUMN_NAME, 'dim_1'])['metric_1'].sum().reset_index()
 
+    assert actual.to_dict() == expected.to_dict()
+
+def test_ratio_calculation():
+    df = gen_df()
+    df['metric_1'] = df['metric_1'] + 1
+    df['metric_2'] = 2*(df['metric_1'])
+    actual = _format_data(df=df,
+                          value={'name': 'this_ratio', 'numerator': 'metric_1', 'denominator': 'metric_2'},
+                          x='dim_1')
+    expected = pd.DataFrame({SUBPLOT_COLUMN_NAME:'',
+                             COLOR_BY_COLUMN_NAME: '',
+                             'dim_1': df.dim_1,
+                             'metric_1': df.metric_1,
+                             'metric_2': df.metric_2,
+                             'this_ratio': 10*[0.5]})
     assert actual.to_dict() == expected.to_dict()
