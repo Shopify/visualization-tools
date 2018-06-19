@@ -37,6 +37,11 @@ SUBPLOT_COLUMN_NAME = '__subplot_column_name__'
 COLOR_BY_COLUMN_NAME = '__color_by_column_name__'
 COLOR_COLUMN = '__color__'
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 def _get_column_type(df, column_name):
     """
     Method that returns the numpy type of a column
@@ -60,6 +65,26 @@ def _get_column_cardinality(df, column_name):
 
     return df[column_name].nunique()
 
+def _check_valid_calculation(some_dict):
+    try:
+        a = isinstance(some_dict['name'], basestring)
+    except KeyError:
+        raise Exception('the calculation dict is missing a name key-value pair')
+    try:
+        b = isinstance(some_dict['numerator'], basestring)
+    except KeyError:
+        raise Exception('the calculation dict is missing a numerator key-value pair')
+    try:
+        c = isinstance(some_dict['denominator'], basestring)
+    except KeyError:
+        raise Exception('the calculation dict is missing a denominator key-value pair')
+
+    if not (a and b and c):
+        raise Exception('All column name references in the calculation must be strings')
+
+    return True
+
+
 
 def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     # TODO use index if x is None
@@ -68,23 +93,21 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
     a formated dataframe that can be manipulated by the _plotify method
     
     :param df: instance of pandas.DataFrame
-    :param value: str column name of y axis values
+    :param value: str column name of y axis values or dict with calculation information
     :param x: str column name of x axis values
     :param plot_by: str or list of column names
     :param line_by: str or list of column names
     :return: instance of pandas.DataFrame
     """
-    
-    if not is_numeric_dtype(df[value]):
-        message = "The value column " + value + " is not numeric"
-        raise Exception(message)
 
     df = df.copy()
-    
-    try:
-        basestring
-    except NameError:
-        basestring = str
+
+    if isinstance(value, dict):
+        _check_valid_calculation(value)
+    else:
+        if not is_numeric_dtype(df[value]):
+            message = "The value column " + value + " is not numeric"
+            raise Exception(message)
 
     if plot_by:
         if isinstance(plot_by, basestring):
@@ -118,7 +141,11 @@ def _format_data(df, value, x, plot_by=None, color_by=None, aggregate=True):
         message = 'Number of colors per plot exceeds maximum, MAX_COLORS = ' + str(MAX_COLORS)
         raise Exception(message)
 
-    df_new = df.groupby([SUBPLOT_COLUMN_NAME, COLOR_BY_COLUMN_NAME, x])[value].sum().reset_index()
+    if isinstance(value, dict):
+        df_new = df.groupby([SUBPLOT_COLUMN_NAME, COLOR_BY_COLUMN_NAME, x])[[value['numerator'], value['denominator']]].sum().reset_index()
+        df_new[value['name']] = df_new[value['numerator']]/df_new[value['denominator']]
+    else:
+        df_new = df.groupby([SUBPLOT_COLUMN_NAME, COLOR_BY_COLUMN_NAME, x])[value].sum().reset_index()
 
     if df_new.index.size != df.index.size and not aggregate:
         warnings.warn(
@@ -332,6 +359,9 @@ def create_plotly_fig(df, x, value, plot_by=None, color_by=None, number_of_colum
                       x=x,
                       plot_by=plot_by,
                       color_by=color_by)
+    if isinstance(value, dict):
+        value = value['name']
+
     traces = build_traces(df=df,
                           x=x,
                           y=value,
