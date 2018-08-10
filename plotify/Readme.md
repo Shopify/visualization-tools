@@ -6,8 +6,9 @@ and outputs a nice grid of plots showing you all the results.
 The main benefit is to increase speed and convenience for basic data visualization.
 
 ## How to Install
-in the shell type: `pip install git+git://github.com/Shopify/visualization-tools.git`
-in a Jupyter notebook type: `!pip2 install git+git://github.com/Shopify/visualization-tools.git`
+In the shell type: `pip install git+git://github.com/Shopify/visualization-tools.git`
+
+In a Jupyter notebook type: `!pip2 install git+git://github.com/Shopify/visualization-tools.git`
 
 ## Example Command
 Assuming you have a dataframe named `df` already available in your notebook:
