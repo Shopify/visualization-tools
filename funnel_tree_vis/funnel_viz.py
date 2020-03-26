@@ -362,11 +362,11 @@ class TreeViz(object):
         :param node: A Node() object
         :return: Label string
         """
-        all_metric_list = node.calculation.keys()
+        all_metric_list = list(node.calculation.keys())
         all_metric_list.extend(node.metrics)
 
         metric_string_list = []
-        for metric_name, layout_dict in self.node_metric_col_print_dict.iteritems():
+        for metric_name, layout_dict in self.node_metric_col_print_dict.items():
             if metric_name in all_metric_list:
                 metric_formated = self._format_string(node.__getattr__(metric_name),
                                                       layout_dict['type'],
