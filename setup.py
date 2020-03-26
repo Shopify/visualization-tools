@@ -10,5 +10,6 @@ setup(
     package_dir={
         'funnel_tree_vis': 'funnel_tree_vis',
         'plotify': 'plotify'
-    }
+    },
+    install_requires=['anytree']
 )
