@@ -87,17 +87,8 @@ class TreeViz(object):
         """
         Create the tree, set the node value and add calculation
         """
-        # Making sure the aggregation is the right one
-        df = self.df[self.node_level_list + self.metrics]\
-            .groupby(self.node_level_list, as_index=False).sum()
-
-        SEP = self.SEP
-        df['pathString'] = df[self.node_level_list].apply(lambda row: SEP.join(row.values), axis=1)
-        df['pathString'] = df['pathString'].map(lambda value: SEP.join([self.root_name, value]))
-
-        tree = self._create_tree_structure(df, self.metrics)
-        df_all_node = self._get_all_node_df(df)
-
+        df_all_node = self._get_all_node_df()
+        tree = self._create_tree_structure(df_all_node, self.metrics)
         tree = self._set_node_metric(df_all_node, tree)
         self._add_calculation_to_node(tree, self.calculation)
         return tree
@@ -120,9 +111,9 @@ class TreeViz(object):
         :param df: Pandas DataFrame with some key and metric column
         :param metrics: Column of the Dataframe on which we will aggregate the value
             on a node level.
-        :return: Return an empty tree (only the tructure)
+        :return: Return an empty tree (only the structure)
         """
-        all_node_name = self._get_node_list_from_pathstring(df['pathString'].values)
+        all_node_name = df.node_name.tolist()
 
         # root is hardcoded because only node with no parent
         # so it wouldn't work in for loop
@@ -179,15 +170,23 @@ class TreeViz(object):
         assert len(node_list) == 1, "The name of the node is not unique or does not exist"
         return node_list[0]
 
-    def _get_all_node_df(self, df):
-        df = df.copy()
-        node_names = self._get_node_list_from_pathstring(df['pathString'].values)
+    def _get_all_node_df(self):
+        df = self.df.copy()
+
+        # Making sure the aggregation is the right one
+        df = df[self.node_level_list + self.metrics]\
+            .groupby(self.node_level_list, as_index=False).sum()
+
+        SEP = self.SEP
+        df['path_string'] = df[self.node_level_list].apply(lambda row: SEP.join(row.values), axis=1)
+        df['path_string'] = df['path_string'].map(lambda value: SEP.join([self.root_name, value]))
+        node_names = self._get_node_list_from_pathstring(df['path_string'].values)
 
         # Performing a Cross Join
         df['cross_join_id'] = 1
         df_node_name = pd.DataFrame({'node_name': node_names, 'cross_join_id': 1})
         df_node_name = pd.merge(df, df_node_name, on='cross_join_id')
-        df_node_name['ind'] = df_node_name.apply(lambda x: x.node_name in x.pathString, axis=1)
+        df_node_name['ind'] = df_node_name.apply(lambda x: x.node_name in x.path_string, axis=1)
         df_node_name = df_node_name[df_node_name['ind']] \
             .groupby('node_name', as_index=False) \
             .sum() \
