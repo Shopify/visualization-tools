@@ -8,7 +8,6 @@ from anytree import Node as BaseNode, PreOrderIter
 from anytree.dotexport import RenderTreeGraph
 
 
-
 class Node(BaseNode):
     """
     Class to extend the BaseNode object coming from anytree.
@@ -26,45 +25,22 @@ class Node(BaseNode):
 
     def __getattr__(self, name):
         """
-        We want to modify this function so we can can do node.metric_name = sum of all child
-        if name is in metrics or in calculation.
-
-        :param name:
-        :return: Sum of all the children if name is in << metrics >> regular behavior otherwise
+        :param name: the name of the value we are trying to access on the node
+        :return: Return the value associated with the metric_name or the regular value if the attribute is not a metric name
         """
 
+        metric_and_calculations = self.__dict__.get('metrics', []) + list(self.__dict__.get('calculation', {}).keys())
         # We need to add this condition because __getattr__ is getting call before
-        # metrics is instantiated
-        if self.__dict__.get('metrics'):
-            if name in self.__dict__['metrics']:
-                return self._aggregate_child_metric(name)
-
-            elif name in self.__dict__['calculation'].keys():
-                return self.calculation[name](self)
-            else:
-                # Default behaviour
-                raise AttributeError
+        # metrics and calculation are instantiated
+        if name in metric_and_calculations:
+            return self.__getattribute__(name)
         else:
             raise AttributeError
 
-    def _aggregate_child_metric(self, attribute_name):
-        """
-        Function that aggregate (sum) attribute_name over all the child
-        :param attribute_name:
-        :return: sum of all child for the specific attribute_name
-        """
-        if self.is_leaf:
-            return self.__getattribute__(attribute_name)
-        tally = 0
-        for child in self.children:
-            tally += child._aggregate_child_metric(attribute_name)
-        return tally
-
     def _add_calculation(self, calculation_dict):
         """
-        Helper function to add/update a calculation in the dict
-        :param calculation_dict: A dict with key='calculation name'
-            and value = Function to be applied on each node.
+            Helper function to add/update a calculation in the dict
+            :param calculation_dict: A dict with key='calculation name' and value = Function to be applied on each node.
         """
         self.calculation.update(calculation_dict)
 
@@ -76,7 +52,7 @@ class TreeViz(object):
     SEP = '->'
     root_name = 'root'
 
-    def __init__(self, df, node_level_list=None, metrics=None):
+    def __init__(self, df, node_level_list=None, metrics=None, calculations=None):
         """
         :param df: Pandas DataFrame with some key and metric column
         :param node_level_list: Column of the DataFrame on which we will create the tree structure
@@ -93,7 +69,7 @@ class TreeViz(object):
         self.metrics = metrics or list(df.select_dtypes(include=[np.number]).columns.values)
 
         # Calculation to be added to the node
-        self.calculation = {}
+        self.calculations = {} if not calculations else calculations
 
         # This this represent the metric or calculation to be shown and with which format
         #  to be printed : {'metric_name': {'type': type, 'digits': digits}}
@@ -104,14 +80,10 @@ class TreeViz(object):
         """
         Create the tree, set the node value and add calculation
         """
-
-        # Making sure the aggregation is the right one
-        df = self.df[self.node_level_list + self.metrics]\
-            .groupby(self.node_level_list, as_index=False).sum()
-
-        tree = self._create_tree_structure(df, self.node_level_list, self.metrics)
-        tree = self._set_leaf_node_metric(df, tree)
-        self._add_calculation_to_node(tree, self.calculation)
+        df_all_node = self._get_all_node_df()
+        tree = self._create_tree_structure(df_all_node, self.metrics)
+        tree = self._set_node_metric_and_calculation(df_all_node, tree)
+        self._add_calculation_to_node(tree, self.calculations)
         return tree
 
     @property
@@ -125,20 +97,16 @@ class TreeViz(object):
         return self._node_metric_col_print_dict or \
                 self._get_default_node_metric_col_print_dict()
 
-    def _create_tree_structure(self, df, node_level_list, metrics):
+    def _create_tree_structure(self, df, metrics):
         """
         Function that create the whole tree structure
 
         :param df: Pandas DataFrame with some key and metric column
-        :param node_level_list: Column of the DataFrame on which we will create the tree structure
         :param metrics: Column of the Dataframe on which we will aggregate the value
             on a node level.
-        :return: Return an empty tree (only the tructure)
+        :return: Return an empty tree (only the structure)
         """
-        SEP = self.SEP
-        df['pathString'] = df[node_level_list].apply(lambda row: SEP.join(row.values), axis=1)
-        df['pathString'] = df['pathString'].map(lambda value: SEP.join([self.root_name, value]))
-        all_node_name = self._get_node_list_from_pathstring(df['pathString'].values)
+        all_node_name = df.node_name.tolist()
 
         # root is hardcoded because only node with no parent
         # so it wouldn't work in for loop
@@ -146,7 +114,7 @@ class TreeViz(object):
         for node_name in all_node_name[1:]:
             # 'root->added->3rd party domain'.rsplit(SEP, 1) splits
             # 'root->added->3rd party domain' in ['root->added', '3rd party domain']
-            parent_name = node_name.rsplit(SEP, 1)[0]
+            parent_name = node_name.rsplit(self.SEP, 1)[0]
             parent_node = self._get_node(tree, parent_name)
             Node(node_name, metrics, parent_node)
         return tree
@@ -195,21 +163,48 @@ class TreeViz(object):
         assert len(node_list) == 1, "The name of the node is not unique or does not exist"
         return node_list[0]
 
-    def _set_leaf_node_metric(self, df, tree):
+    def _get_all_node_df(self):
+        df = self.df.copy()
+
+        # Making sure the aggregation is the right one
+        df = df[self.node_level_list + self.metrics]\
+            .groupby(self.node_level_list, as_index=False).sum()
+
+        SEP = self.SEP
+        df['path_string'] = df[self.node_level_list].apply(lambda row: SEP.join(row.values), axis=1)
+        df['path_string'] = df['path_string'].map(lambda value: SEP.join([self.root_name, value]))
+        node_names = self._get_node_list_from_pathstring(df['path_string'].values)
+
+        # Performing a Cross Join
+        df['cross_join_id'] = 1
+        df_node_name = pd.DataFrame({'node_name': node_names, 'cross_join_id': 1})
+        df_node_name = pd.merge(df, df_node_name, on='cross_join_id')
+        df_node_name['ind'] = df_node_name.apply(lambda x: x.node_name in x.path_string, axis=1)
+        df_node_name = df_node_name[df_node_name['ind']] \
+            .groupby('node_name', as_index=False) \
+            .sum() \
+            .drop(columns=['ind', 'cross_join_id'])
+
+        if self.calculations:
+            df_node_name = df_node_name.assign(**self.calculations)
+
+        return df_node_name
+
+    def _set_node_metric_and_calculation(self, df, tree):
         """
         Each row of the df should be representing the leaf.
         We are using each row to set the leaf.
 
-        :param df: Pandas DataFrame with some key, metric column and a pathString column
+        :param df: Pandas DataFrame with some key, metric column and a node_name column
         :param tree: tree is an instance of Node()
         :return: Nothing
         """
-        for path_string in df['pathString'].values:
-            leaf_node = self._get_node(tree, path_string)
-            for metric in self.metrics:
+        for path_string in df['node_name'].values:
+            node = self._get_node(tree, path_string)
+            for metric in (self.metrics + list(self.calculations.keys())):
                 try:
-                    value = df[df.pathString == path_string][metric].values[0]
-                    leaf_node.__setattr__(metric, value)
+                    value = df[df.node_name == path_string][metric].values[0]
+                    node.__setattr__(metric, value)
                 except KeyError:
                     raise KeyError(
                         "Metric '{}' not in DataFrame columns".format(metric)
@@ -236,7 +231,6 @@ class TreeViz(object):
             RenderTreeGraph(node=self.tree,
                             nodeattrfunc=lambda node:
                             self._get_node_attr(node,
-                                                self.node_metric_col_print_dict,
                                                 node_label_func,
                                                 node_shape_func),
                             edgeattrfunc=lambda node, child:
@@ -245,14 +239,12 @@ class TreeViz(object):
         render_tree.to_picture(filepath)
         return self._to_dot(render_tree)
 
-    def _get_node_attr(self, node, node_metric_col_print_dict=None,
-                       node_label_func=None, node_shape_func=None):
+    def _get_node_attr(self, node, node_label_func=None, node_shape_func=None):
         """
         Function that output the right function to use for the nodeattrfunc parameter
             of the  RenderTreeGraph().
 
         :param node: The Node() object
-        :param node_metric_col_print_dict: Same as in plot_tree
         :param node_shape_func: Function to be apply to each node to get the shape
         :param node_label_func: Function to be apply to each node to get the label
         :return: A function to put in the nodeattrfunc parameter
@@ -313,7 +305,7 @@ class TreeViz(object):
         :param calculation_dict: A dict with key='calculation name' and value = Function to be
             applied on each node.
         """
-        self.calculation.update(calculation_dict)
+        self.calculations.update(calculation_dict)
 
     @staticmethod
     def _add_calculation_to_node(tree, calculation_dict):
