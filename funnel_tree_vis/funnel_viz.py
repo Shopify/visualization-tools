@@ -29,25 +29,18 @@ class Node(BaseNode):
         :return: Return the value associated with the metric_name or the regular value if the attribute is not a metric name
         """
 
+        metric_and_calculations = self.__dict__.get('metrics', []) + list(self.__dict__.get('calculation', {}).keys())
         # We need to add this condition because __getattr__ is getting call before
-        # metrics is instantiated
-        if self.__dict__.get('metrics'):
-            if name in self.__dict__['metrics']:
-                return self.__getattribute__(name)
-
-            elif name in self.__dict__['calculation'].keys():
-                return self.calculation[name](self)
-            else:
-                # Default behaviour
-                raise AttributeError
+        # metrics and calculation are instantiated
+        if name in metric_and_calculations:
+            return self.__getattribute__(name)
         else:
             raise AttributeError
 
     def _add_calculation(self, calculation_dict):
         """
-        Helper function to add/update a calculation in the dict
-        :param calculation_dict: A dict with key='calculation name'
-            and value = Function to be applied on each node.
+            Helper function to add/update a calculation in the dict
+            :param calculation_dict: A dict with key='calculation name' and value = Function to be applied on each node.
         """
         self.calculation.update(calculation_dict)
 
@@ -59,7 +52,7 @@ class TreeViz(object):
     SEP = '->'
     root_name = 'root'
 
-    def __init__(self, df, node_level_list=None, metrics=None):
+    def __init__(self, df, node_level_list=None, metrics=None, calculations=None):
         """
         :param df: Pandas DataFrame with some key and metric column
         :param node_level_list: Column of the DataFrame on which we will create the tree structure
@@ -76,7 +69,7 @@ class TreeViz(object):
         self.metrics = metrics or list(df.select_dtypes(include=[np.number]).columns.values)
 
         # Calculation to be added to the node
-        self.calculation = {}
+        self.calculations = {} if not calculations else calculations
 
         # This this represent the metric or calculation to be shown and with which format
         #  to be printed : {'metric_name': {'type': type, 'digits': digits}}
@@ -89,8 +82,8 @@ class TreeViz(object):
         """
         df_all_node = self._get_all_node_df()
         tree = self._create_tree_structure(df_all_node, self.metrics)
-        tree = self._set_node_metric(df_all_node, tree)
-        self._add_calculation_to_node(tree, self.calculation)
+        tree = self._set_node_metric_and_calculation(df_all_node, tree)
+        self._add_calculation_to_node(tree, self.calculations)
         return tree
 
     @property
@@ -191,9 +184,13 @@ class TreeViz(object):
             .groupby('node_name', as_index=False) \
             .sum() \
             .drop(columns=['ind', 'cross_join_id'])
+
+        if self.calculations:
+            df_node_name = df_node_name.assign(**self.calculations)
+
         return df_node_name
 
-    def _set_node_metric(self, df, tree):
+    def _set_node_metric_and_calculation(self, df, tree):
         """
         Each row of the df should be representing the leaf.
         We are using each row to set the leaf.
@@ -204,7 +201,7 @@ class TreeViz(object):
         """
         for path_string in df['node_name'].values:
             node = self._get_node(tree, path_string)
-            for metric in self.metrics:
+            for metric in (self.metrics + list(self.calculations.keys())):
                 try:
                     value = df[df.node_name == path_string][metric].values[0]
                     node.__setattr__(metric, value)
@@ -308,7 +305,7 @@ class TreeViz(object):
         :param calculation_dict: A dict with key='calculation name' and value = Function to be
             applied on each node.
         """
-        self.calculation.update(calculation_dict)
+        self.calculations.update(calculation_dict)
 
     @staticmethod
     def _add_calculation_to_node(tree, calculation_dict):
