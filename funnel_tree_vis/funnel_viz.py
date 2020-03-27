@@ -8,7 +8,6 @@ from anytree import Node as BaseNode, PreOrderIter
 from anytree.dotexport import RenderTreeGraph
 
 
-
 class Node(BaseNode):
     """
     Class to extend the BaseNode object coming from anytree.
@@ -26,11 +25,8 @@ class Node(BaseNode):
 
     def __getattr__(self, name):
         """
-        We want to modify this function so we can can do node.metric_name = sum of all child
-        if name is in metrics or in calculation.
-
-        :param name:
-        :return: Sum of all the children if name is in << metrics >> regular behavior otherwise
+        :param name: the name of the value we are trying to access on the node
+        :return: Return the value associated with the metric_name or the regular value if the attribute is not a metric name
         """
 
         # We need to add this condition because __getattr__ is getting call before
@@ -91,7 +87,6 @@ class TreeViz(object):
         """
         Create the tree, set the node value and add calculation
         """
-
         # Making sure the aggregation is the right one
         df = self.df[self.node_level_list + self.metrics]\
             .groupby(self.node_level_list, as_index=False).sum()
@@ -240,7 +235,6 @@ class TreeViz(object):
             RenderTreeGraph(node=self.tree,
                             nodeattrfunc=lambda node:
                             self._get_node_attr(node,
-                                                self.node_metric_col_print_dict,
                                                 node_label_func,
                                                 node_shape_func),
                             edgeattrfunc=lambda node, child:
@@ -249,14 +243,12 @@ class TreeViz(object):
         render_tree.to_picture(filepath)
         return self._to_dot(render_tree)
 
-    def _get_node_attr(self, node, node_metric_col_print_dict=None,
-                       node_label_func=None, node_shape_func=None):
+    def _get_node_attr(self, node, node_label_func=None, node_shape_func=None):
         """
         Function that output the right function to use for the nodeattrfunc parameter
             of the  RenderTreeGraph().
 
         :param node: The Node() object
-        :param node_metric_col_print_dict: Same as in plot_tree
         :param node_shape_func: Function to be apply to each node to get the shape
         :param node_label_func: Function to be apply to each node to get the label
         :return: A function to put in the nodeattrfunc parameter
