@@ -37,7 +37,7 @@ class Node(BaseNode):
         # metrics is instantiated
         if self.__dict__.get('metrics'):
             if name in self.__dict__['metrics']:
-                return self._aggregate_child_metric(name)
+                return self.__getattribute__(name)
 
             elif name in self.__dict__['calculation'].keys():
                 return self.calculation[name](self)
@@ -46,19 +46,6 @@ class Node(BaseNode):
                 raise AttributeError
         else:
             raise AttributeError
-
-    def _aggregate_child_metric(self, attribute_name):
-        """
-        Function that aggregate (sum) attribute_name over all the child
-        :param attribute_name:
-        :return: sum of all child for the specific attribute_name
-        """
-        if self.is_leaf:
-            return self.__getattribute__(attribute_name)
-        tally = 0
-        for child in self.children:
-            tally += child._aggregate_child_metric(attribute_name)
-        return tally
 
     def _add_calculation(self, calculation_dict):
         """
@@ -109,8 +96,14 @@ class TreeViz(object):
         df = self.df[self.node_level_list + self.metrics]\
             .groupby(self.node_level_list, as_index=False).sum()
 
-        tree = self._create_tree_structure(df, self.node_level_list, self.metrics)
-        tree = self._set_leaf_node_metric(df, tree)
+        SEP = self.SEP
+        df['pathString'] = df[self.node_level_list].apply(lambda row: SEP.join(row.values), axis=1)
+        df['pathString'] = df['pathString'].map(lambda value: SEP.join([self.root_name, value]))
+
+        tree = self._create_tree_structure(df, self.metrics)
+        df_all_node = self._get_all_node_df(df)
+
+        tree = self._set_node_metric(df_all_node, tree)
         self._add_calculation_to_node(tree, self.calculation)
         return tree
 
@@ -125,19 +118,15 @@ class TreeViz(object):
         return self._node_metric_col_print_dict or \
                 self._get_default_node_metric_col_print_dict()
 
-    def _create_tree_structure(self, df, node_level_list, metrics):
+    def _create_tree_structure(self, df, metrics):
         """
         Function that create the whole tree structure
 
         :param df: Pandas DataFrame with some key and metric column
-        :param node_level_list: Column of the DataFrame on which we will create the tree structure
         :param metrics: Column of the Dataframe on which we will aggregate the value
             on a node level.
         :return: Return an empty tree (only the tructure)
         """
-        SEP = self.SEP
-        df['pathString'] = df[node_level_list].apply(lambda row: SEP.join(row.values), axis=1)
-        df['pathString'] = df['pathString'].map(lambda value: SEP.join([self.root_name, value]))
         all_node_name = self._get_node_list_from_pathstring(df['pathString'].values)
 
         # root is hardcoded because only node with no parent
@@ -146,7 +135,7 @@ class TreeViz(object):
         for node_name in all_node_name[1:]:
             # 'root->added->3rd party domain'.rsplit(SEP, 1) splits
             # 'root->added->3rd party domain' in ['root->added', '3rd party domain']
-            parent_name = node_name.rsplit(SEP, 1)[0]
+            parent_name = node_name.rsplit(self.SEP, 1)[0]
             parent_node = self._get_node(tree, parent_name)
             Node(node_name, metrics, parent_node)
         return tree
@@ -195,21 +184,36 @@ class TreeViz(object):
         assert len(node_list) == 1, "The name of the node is not unique or does not exist"
         return node_list[0]
 
-    def _set_leaf_node_metric(self, df, tree):
+    def _get_all_node_df(self, df):
+        df = df.copy()
+        node_names = self._get_node_list_from_pathstring(df['pathString'].values)
+
+        # Performing a Cross Join
+        df['cross_join_id'] = 1
+        df_node_name = pd.DataFrame({'node_name': node_names, 'cross_join_id': 1})
+        df_node_name = pd.merge(df, df_node_name, on='cross_join_id')
+        df_node_name['ind'] = df_node_name.apply(lambda x: x.node_name in x.pathString, axis=1)
+        df_node_name = df_node_name[df_node_name['ind']] \
+            .groupby('node_name', as_index=False) \
+            .sum() \
+            .drop(columns=['ind', 'cross_join_id'])
+        return df_node_name
+
+    def _set_node_metric(self, df, tree):
         """
         Each row of the df should be representing the leaf.
         We are using each row to set the leaf.
 
-        :param df: Pandas DataFrame with some key, metric column and a pathString column
+        :param df: Pandas DataFrame with some key, metric column and a node_name column
         :param tree: tree is an instance of Node()
         :return: Nothing
         """
-        for path_string in df['pathString'].values:
-            leaf_node = self._get_node(tree, path_string)
+        for path_string in df['node_name'].values:
+            node = self._get_node(tree, path_string)
             for metric in self.metrics:
                 try:
-                    value = df[df.pathString == path_string][metric].values[0]
-                    leaf_node.__setattr__(metric, value)
+                    value = df[df.node_name == path_string][metric].values[0]
+                    node.__setattr__(metric, value)
                 except KeyError:
                     raise KeyError(
                         "Metric '{}' not in DataFrame columns".format(metric)
